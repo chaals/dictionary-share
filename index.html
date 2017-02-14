@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html; charset=windows-1252" http-equiv="content-type">
+    <title>Shared Dictionary - update</title>
+  </head>
+  <body>
+    <p>This is a replacement approach for SDCH - draft-lee-sdch-spec-00</p>
+    <p>Editor: Chaals, Bacek</p>
+    <h2>To do:</h2>
+    <p>most stuff :(</p>
+    <h3>Examples</h3>
+    <p>An initial request for a resource</p>
+    <pre><code>GET /foo.html HTTP/1.1
+Host: example.com
+Accept-Encoding: gzip, deflate, br, sdchx
+SDCHx-Features: &lt;semicolon separated list of supported features&gt;</code></pre>
+    <p>Initial response</p>
+    <pre><code>HTTP/1.1 200 Ok
+Set-Cookie: &lt;sdch_tracking_id&gt;
+Link: &lt;https://cdn.example.com/common.dict&gt;; rel=”sdchx-dictionary”
+Access-Control-Allow-Origin: cdn.example.com</code></pre>
+    <p>Request for dictionary:</p>
+    <pre><code>GET /common.dict HTTP/1.1
+Host: cdn.example.com
+Accept-Encoding: gzip, deflate, br, sdchx
+SDCHx-Features: &lt;semicolon separated list of supported features&gt;
+Cookie: &lt;sdch_tracking_id=id&gt;</code></pre>
+    <p>Response with dictionary:</p>
+    <pre><code>HTTP/1.1 200 Ok
+Content-Encoding: bg
+Content-Length: &lt;length&gt;
+SDCHx-Server-Id: &lt;sha256 checksum of Dictionary content&gt;
+SDCHx-Algo: &lt;algorithm&gt;
+Cache-Control: max-age=&lt;max-age&gt;</code></pre>
+    <p>SDCHx-Server-Id serves several purposes:</p>
+    <ul>
+      <li>Identify the resource.</li>
+      <li>Verify against MITM proxies which corrupts response. E.g. KIS</li>
+      <li>Generate client_id which is lower 48 bits of server_id</li>
+    </ul>
+    <p>SDCHx-Algo: algorithm to be used with this dictionary. Default is vcdiff, but can be extended in future for content-type specific
+      algos.</p>
+    <p>Cache-Control: max-age serves the purpose of Dictionary lifetime.</p>
+    <p>Dictionary is just a blob of data without any particular format.</p>
+    <p>Request with dictionary:</p>
+    <pre><code>GET /bar.html HTTP/1.1
+    Host: example.com
+    Accept-Encoding: gzip, deflate, br, sdchx
+    Cookie: &lt;sdch_tracking_id=id&gt;
+    SDCHx-Features: &lt;semicolon separated list of supported features&gt;
+    SDCHx-Avail-Dictionaries: &lt;comma separated list of client dictionary ids&gt;</code></pre>
+    <p>SDCH encoded response:</p>
+    <pre><code>HTTP/1.1 242 Delta encoded
+    Content-Encoding: sdchx, br
+    SDCHx-Used-Dictionary-Id: &lt;server_id&gt;
+    SDCHx-Algo: vcdiff
+    &lt;vcdiff encoded response&gt;</code></pre>
+    <p>SDCHx encoded response can be further encoded with generic compression algorithm.</p>
+    <p>Response SHOULD include algorithm specific checksum to verify integrity. Client is advised to store decoded content in cache.</p>
+    <h2>Dynamic dictionary use</h2>
+    <p>Initial request</p>
+    <pre><code>GET /foo.html HTTP/1.1
+    Host: example.com
+    Accept-Encoding: gzip, deflate, br, sdchx
+    SDCHx-Features: &lt;semicolon separated list of supported features&gt;</code></pre>
+    <p>Initial response</p>
+    <pre><code>HTTP/1.1 200 Ok
+    Content-Encoding: bg
+    Content-Length: &lt;length&gt;
+    SDCHx-Server-Id: &lt;sha256 checksum of Dictionary content&gt;
+    SDCHx-Related-Pattern: &lt;pattern&gt;
+    SDCHx-Algo: &lt;algorithm&gt;
+    Cache-Control: max-age=&lt;max-age&gt;</code></pre>
+    <p>In this case server notify client to use this response as Dynamic Dictionary for future requests. Semantic of all headers is exactly
+      the same as in Precomputed Dictionary.</p>
+    <p>With HTTP/2 it’s advisable to use trailing HEADERS frame (see [RFC7230], Section 4.1.2) with SDCHx related headers to allow content
+      streaming without caching on server side.</p>
+    <h2>Multiple dictionaries used for single response.</h2>
+    <p>Sometimes it can be feasible to use more than one Dictionary to encode response. For example, having a large dictionary that changes
+      infrequently and a smaller more frequently updating dictionary. In this case client can advertise “multidict” in SDCHx-Features header
+      (based on available memory, free CPU cycles, etc). If server decided to use it then it will concatenate two or more Dictionaries into
+      on and use for encoding.</p>
+    <p>Request:</p>
+    <pre><code>GET /bar.html HTTP/1.1
+Host: example.com
+Accept-Encoding: gzip, deflate, br, sdchx
+Cookie: &lt;sdch_tracking_id=id&gt;
+SDCHx-Features: multidict, encoding=vcdiff
+SDCHx-Avail-Dictionaries: &lt;id1&gt;, &lt;id2&gt;, &lt;id3&gt;</code></pre>
+    <p>Response:</p>
+    <pre><code>HTTP/1.1 242 Delta encoded
+Content-Encoding: sdchx, br
+SDCHx-Used-Dictionary-Id: &lt;id1&gt;
+SDCHx-Used-Dictionary-Id: &lt;id3&gt;
+SDCHx-Algo: vcdiff
+&lt;vcdiff encoded response&gt;</code></pre>
+    <p>In this example server decided to use Dictionaries &lt;id1&gt; and &lt;id3&gt; for encoding. Client must concatenate content of those
+      dictionaries into one to decode response. As per HTTP spec SDCHx-Used-Dictionary-Id can be combined into single, comma separated list.</p>
+    <h2>Headers</h2>
+    <h3>Client headers</h3>
+    <h4><code>Accept-Encoding</code></h4>
+    <p>Must contain sdchx to notify server about SDCHx support.</p>
+    <h4><code>SDCHx-Features</code></h4>
+    <p>A semicolon separated list of features the client supports.</p>
+    <p><code>encoding=&lt;&gt;</code> -- comma separated list of encodings supported by client. By default list consist of single element
+      vcdiff</p>
+    <p>In future version the list of features can be extended.</p>
+    <h4><code>SDCHx-Avail-Dictionaries</code></h4>
+    <p>Comma separated list of dictionary client ids.</p>
+    <p><code>Cookie</code></p>
+    <p>To properly support Dynamic Dictionaries server need some unique tracking of client. We can use standard cookie mechanism to do it.
+      Name of the cookie is not specified.</p>
+    <h3>Server headers</h3>
+    <h4><code>SDCHx-Server-Id</code></h4>
+    <p>Server id is calculated as sha256 of Dictionary content. It also serves base for client id (first 48 bits) and verification purpose.</p>
+    <h4><code>SDCHx-Related-Pattern</code></h4>
+    <p>host/path to which this Dictionary is applicable. When the host part is empty dictionary is applicable to all hosts from which
+      SDCHx-Get-Dictionary response headers was issued </p>
+    <p>Original host in case of Dynamic Dictionary</p>
+    <h4><code>SDCHx-Algo</code></h4>
+    <p>Specify either</p>
+    <p>algorithm this Dictionary can be used with. Default is vcdiff.</p>
+    <p>Algorithm used to encode response. Default is vcdiff.</p>
+    <h4><code>SDCHx-Used-Dictionary-Id</code></h4>
+    <p>Dictionary server id used for encoding. </p>
+    <h4> <code>SDCHx-Remove-Dictionary</code> </h4>
+    <p> A comma separated list of Dictionaries which the client should remove - e.g. because they are out of date. The value must be a
+      subset of the <code>SDCHx-Available-Dictionaries</code> header received in a request.</p>
+    <p> </p>
+    <p> <code>SDCHx-Tag</code></p>
+    <p> Way of grouping and tagging SDCHx dictionaries to notify client about dictionary applicability.</p>
+    <p> </p>
+    <p> For example we can serve a <var>js.dict</var> Dictionary with “SDCHx-Tag: js” header. In the HTML served we can then have snippet
+      similar to </p>
+    <p> <code>&lt;script src=”/js/foo.js” sdchx-tag=”js”/&gt;</code></p>
+    <p> </p>
+    <p> In this case when client has many Dictionaries stored it can advertise on Dictionaries tagged with “js”.</p>
+    <p> <code>Cache-Control</code></p>
+    <p> <code>max-age=&lt;<var>seconds</var>&gt;</code> determines the lifetime of the Dictionary. After this client can re-validate it
+      using standard HTTP caching semantics. Default is &lt;N&gt; seconds.</p>
+    <p> <code>private</code> - to avoid mis-caching on intermediate proxies of delta encoded result server SHOULD set “private” in
+      Cache-Control header for SDCHx encoded responses.</p>
+    <p> <code>no-transform</code> - This signifies that proxies should not change (corrupt) the content, so it will work.</p>
+    <p> </p>
+    <p> <code>Link</code></p>
+    <p> Provide a reference to a related dictionary. Should use <code>rel="sdchx-dictionary"</code>. For example </p>
+    <p class="example"> <code>Link: &lt;https://cdn.example.com/big.dict&gt;; rel="sdchx-dictionary"</code></p>
+    <p> </p>
+    <p> After receiving a <code>Link</code> header with <code>rel="sdchx-dictionary"</code> the client SHOULD mark that dictionary as
+      applicable for the origin domain.</p>
+    <p> </p>
+    <p> See RFC5988 for details.</p>
+    <h2>References:</h2>
+    <dl>
+      <dt>[Origin] RFC6454</dt>
+      <dd>Adam Barth - specify same origin.</dd>
+      <dt>[Link] RFC5988</dt>
+      <dd>Mnot</dd>
+      <dt>[SDCH] Butler et al.</dt>
+      <dd>draft-lee-sdch-spec-00</dd>
+      <dt>[VCDiff] RFC3284</dt>
+    </dl>
+    <h2>Acknowledgements</h2>
+    <p>Wawa, Mnot, Martin Thompson, Ted Hardie, the guys behind SDCH (see editors and acknowledgements) </p>
+    <p> </p>
+  </body>
+</html>
