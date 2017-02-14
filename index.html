@@ -7,8 +7,11 @@
   <body>
     <p>This is a replacement approach for SDCH - draft-lee-sdch-spec-00</p>
     <p>Editor: Chaals, Bacek</p>
+    <p>An approach to shared dictionaries for compression&nbsp; that is related to SDCH. A key difference is moving the metadata out of the
+      dictionary.</p>
     <h2>To do:</h2>
     <p>most stuff :(</p>
+    <p>Explain the differences more clearly</p>
     <h3>Examples</h3>
     <p>An initial request for a resource</p>
     <pre><code>GET /foo.html HTTP/1.1
@@ -32,17 +35,17 @@ Content-Encoding: bg
 Content-Length: &lt;length&gt;
 SDCHx-Server-Id: &lt;sha256 checksum of Dictionary content&gt;
 SDCHx-Algo: &lt;algorithm&gt;
-Cache-Control: max-age=&lt;max-age&gt;</code></pre>
-    <p>SDCHx-Server-Id serves several purposes:</p>
+Cache-Control: max-age=&lt;max-age&gt;<br>&lt;Dictionary&gt;<br></code></pre>
+    <p><code>SDCHx-Server-Id</code> serves several purposes:</p>
     <ul>
       <li>Identify the resource.</li>
       <li>Verify against MITM proxies which corrupts response. E.g. KIS</li>
       <li>Generate client_id which is lower 48 bits of server_id</li>
     </ul>
-    <p>SDCHx-Algo: algorithm to be used with this dictionary. Default is vcdiff, but can be extended in future for content-type specific
-      algos.</p>
-    <p>Cache-Control: max-age serves the purpose of Dictionary lifetime.</p>
-    <p>Dictionary is just a blob of data without any particular format.</p>
+    <p><code>SDCHx-Algo</code>: algorithm to be used with this dictionary. Default is vcdiff. This can be extended in the future to allow
+      for algorithms better suited to certain types of content such as images or bananas.</p>
+    <p><code>Cache-Control: max-age</code> serves the purpose of Dictionary lifetime.</p>
+    <p>The dictionary is just a blob of data without any particular format.</p>
     <p>Request with dictionary:</p>
     <pre><code>GET /bar.html HTTP/1.1
     Host: example.com
@@ -72,8 +75,8 @@ Cache-Control: max-age=&lt;max-age&gt;</code></pre>
     SDCHx-Related-Pattern: &lt;pattern&gt;
     SDCHx-Algo: &lt;algorithm&gt;
     Cache-Control: max-age=&lt;max-age&gt;</code></pre>
-    <p>In this case server notify client to use this response as Dynamic Dictionary for future requests. Semantic of all headers is exactly
-      the same as in Precomputed Dictionary.</p>
+    <p>In this case the server notifies the client to use this response as a Dynamic Dictionary for future requests. The semantics of all
+      the headers is exactly the same as in the case of a Precomputed Dictionary.</p>
     <p>With HTTP/2 it’s advisable to use trailing HEADERS frame (see [RFC7230], Section 4.1.2) with SDCHx related headers to allow content
       streaming without caching on server side.</p>
     <h2>Multiple dictionaries used for single response.</h2>
@@ -97,6 +100,11 @@ SDCHx-Algo: vcdiff
 &lt;vcdiff encoded response&gt;</code></pre>
     <p>In this example server decided to use Dictionaries &lt;id1&gt; and &lt;id3&gt; for encoding. Client must concatenate content of those
       dictionaries into one to decode response. As per HTTP spec SDCHx-Used-Dictionary-Id can be combined into single, comma separated list.</p>
+    <h2>Dictionary Scope</h2>
+    <p>A dictionary matches when the origin [<a href="ref-Origin">Origin</a>] of the dictionary and the resource are the same, and its path
+      matches <code>SDCHx-Related-Pattern</code>. Matching means that if <code>SDCHx-Related-Pattern</code> begins and ends with "/" then
+      it case-sensitively matches the beginning of the path of the resource, otherwise pre- or ap-pending "/" to <code>SDCHx-Related-Pattern</code>
+      as necessary&nbsp; makes it a strict match.</p>
     <h2>Headers</h2>
     <h3>Client headers</h3>
     <h4><code>Accept-Encoding</code></h4>
@@ -108,15 +116,16 @@ SDCHx-Algo: vcdiff
     <p>In future version the list of features can be extended.</p>
     <h4><code>SDCHx-Avail-Dictionaries</code></h4>
     <p>Comma separated list of dictionary client ids.</p>
-    <p><code>Cookie</code></p>
+    <h4><code>Cookie</code></h4>
     <p>To properly support Dynamic Dictionaries server need some unique tracking of client. We can use standard cookie mechanism to do it.
       Name of the cookie is not specified.</p>
     <h3>Server headers</h3>
     <h4><code>SDCHx-Server-Id</code></h4>
-    <p>Server id is calculated as sha256 of Dictionary content. It also serves base for client id (first 48 bits) and verification purpose.</p>
+    <p>Server id is calculated as sha256 of Dictionary content. It also serves base for client id (first 48 bits) and verification purpose.
+      [<a href="ref-SDCH">SDCH</a>]</p>
     <h4><code>SDCHx-Related-Pattern</code></h4>
-    <p>host/path to which this Dictionary is applicable. When the host part is empty dictionary is applicable to all hosts from which
-      SDCHx-Get-Dictionary response headers was issued </p>
+    <p>host/path to which this Dictionary is applicable. When the host part is empty dictionary is applicable to all hosts from which <code>SDCHx-Get-Dictionary</code>
+      response headers was issued </p>
     <p>Original host in case of Dynamic Dictionary</p>
     <h4><code>SDCHx-Algo</code></h4>
     <p>Specify either</p>
@@ -128,7 +137,7 @@ SDCHx-Algo: vcdiff
     <p> A comma separated list of Dictionaries which the client should remove - e.g. because they are out of date. The value must be a
       subset of the <code>SDCHx-Available-Dictionaries</code> header received in a request.</p>
     <p> </p>
-    <p> <code>SDCHx-Tag</code></p>
+    <h4> <code>SDCHx-Tag</code></h4>
     <p> Way of grouping and tagging SDCHx dictionaries to notify client about dictionary applicability.</p>
     <p> </p>
     <p> For example we can serve a <var>js.dict</var> Dictionary with “SDCHx-Tag: js” header. In the HTML served we can then have snippet
@@ -136,30 +145,39 @@ SDCHx-Algo: vcdiff
     <p> <code>&lt;script src=”/js/foo.js” sdchx-tag=”js”/&gt;</code></p>
     <p> </p>
     <p> In this case when client has many Dictionaries stored it can advertise on Dictionaries tagged with “js”.</p>
-    <p> <code>Cache-Control</code></p>
+    <h4> <code>Cache-Control</code></h4>
     <p> <code>max-age=&lt;<var>seconds</var>&gt;</code> determines the lifetime of the Dictionary. After this client can re-validate it
       using standard HTTP caching semantics. Default is &lt;N&gt; seconds.</p>
     <p> <code>private</code> - to avoid mis-caching on intermediate proxies of delta encoded result server SHOULD set “private” in
       Cache-Control header for SDCHx encoded responses.</p>
     <p> <code>no-transform</code> - This signifies that proxies should not change (corrupt) the content, so it will work.</p>
     <p> </p>
-    <p> <code>Link</code></p>
+    <h4> <code>Link</code></h4>
     <p> Provide a reference to a related dictionary. Should use <code>rel="sdchx-dictionary"</code>. For example </p>
     <p class="example"> <code>Link: &lt;https://cdn.example.com/big.dict&gt;; rel="sdchx-dictionary"</code></p>
     <p> </p>
-    <p> After receiving a <code>Link</code> header with <code>rel="sdchx-dictionary"</code> the client SHOULD mark that dictionary as
+    <p> After receiving a <code>Link</code> header with <code>rel="sdchx-dictionary"</code> the client should mark that dictionary as
       applicable for the origin domain.</p>
     <p> </p>
     <p> See RFC5988 for details.</p>
+    <h2>Differences to [<a href="#ref-SDCH">SDCH</a>]</h2>
+    <p>Use of various headers to move metadata out of dictionary</p>
+    <p>Allowing multiple dictionaries</p>
+    <p>Dynamic dictionaries</p>
+    <p><br>
+    </p>
     <h2>References:</h2>
     <dl>
-      <dt>[Origin] RFC6454</dt>
+      <dt>[<a id="ref-2119">2119</a>] RFC2119</dt>
+      <dt>[<a id="ref-Fetch">Fetch</a>] Fetch spec</dt>
+      <dd>Anne vk</dd>
+      <dt>[<a id="ref-Origin">Origin</a>] RFC6454</dt>
       <dd>Adam Barth - specify same origin.</dd>
-      <dt>[Link] RFC5988</dt>
+      <dt>[<a id="ref-Linking">Linking</a>] RFC5988</dt>
       <dd>Mnot</dd>
-      <dt>[SDCH] Butler et al.</dt>
+      <dt>[<a id="ref-SDCH">SDCH</a>] Butler et al.</dt>
       <dd>draft-lee-sdch-spec-00</dd>
-      <dt>[VCDiff] RFC3284</dt>
+      <dt>[<a id="ref-VCDiff">VCDiff</a>] RFC3284</dt>
     </dl>
     <h2>Acknowledgements</h2>
     <p>Wawa, Mnot, Martin Thompson, Ted Hardie, the guys behind SDCH (see editors and acknowledgements) </p>
