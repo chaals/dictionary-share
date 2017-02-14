@@ -7,6 +7,8 @@
   <body>
     <p>This is a replacement approach for SDCH - draft-lee-sdch-spec-00</p>
     <p>Editor: Chaals, Bacek</p>
+    <p>This is currently on github: http://gitub.com/chaals/dictionary-share and comments are welcome there, but the idea is to submit it to
+      IETF as an experimental draft.</p>
     <p>An approach to shared dictionaries for compression&nbsp; that is related to SDCH. A key difference is moving the metadata out of the
       dictionary.</p>
     <h2>To do:</h2>
@@ -21,7 +23,7 @@ SDCHx-Features: &lt;semicolon separated list of supported features&gt;</code></p
     <p>Initial response</p>
     <pre><code>HTTP/1.1 200 Ok
 Set-Cookie: &lt;sdch_tracking_id&gt;
-Link: &lt;https://cdn.example.com/common.dict&gt;; rel=”sdchx-dictionary”
+Link: &lt;https://cdn.example.com/common.dict&gt;; rel="sdchx-dictionary"
 Access-Control-Allow-Origin: cdn.example.com</code></pre>
     <p>Request for dictionary:</p>
     <pre><code>GET /common.dict HTTP/1.1
@@ -77,11 +79,11 @@ Cache-Control: max-age=&lt;max-age&gt;<br>&lt;Dictionary&gt;<br></code></pre>
     Cache-Control: max-age=&lt;max-age&gt;</code></pre>
     <p>In this case the server notifies the client to use this response as a Dynamic Dictionary for future requests. The semantics of all
       the headers is exactly the same as in the case of a Precomputed Dictionary.</p>
-    <p>With HTTP/2 it’s advisable to use trailing HEADERS frame (see [RFC7230], Section 4.1.2) with SDCHx related headers to allow content
+    <p>With HTTP/2 it's advisable to use trailing HEADERS frame (see [RFC7230], Section 4.1.2) with SDCHx related headers to allow content
       streaming without caching on server side.</p>
     <h2>Multiple dictionaries used for single response.</h2>
     <p>Sometimes it can be feasible to use more than one Dictionary to encode response. For example, having a large dictionary that changes
-      infrequently and a smaller more frequently updating dictionary. In this case client can advertise “multidict” in SDCHx-Features header
+      infrequently and a smaller more frequently updating dictionary. In this case client can advertise “multidict" in SDCHx-Features header
       (based on available memory, free CPU cycles, etc). If server decided to use it then it will concatenate two or more Dictionaries into
       on and use for encoding.</p>
     <p>Request:</p>
@@ -140,15 +142,15 @@ SDCHx-Algo: vcdiff
     <h4> <code>SDCHx-Tag</code></h4>
     <p> Way of grouping and tagging SDCHx dictionaries to notify client about dictionary applicability.</p>
     <p> </p>
-    <p> For example we can serve a <var>js.dict</var> Dictionary with “SDCHx-Tag: js” header. In the HTML served we can then have snippet
+    <p> For example we can serve a <var>js.dict</var> Dictionary with “SDCHx-Tag: js" header. In the HTML served we can then have snippet
       similar to </p>
-    <p> <code>&lt;script src=”/js/foo.js” sdchx-tag=”js”/&gt;</code></p>
+    <p> <code>&lt;script src="/js/foo.js" sdchx-tag="js"/&gt;</code></p>
     <p> </p>
-    <p> In this case when client has many Dictionaries stored it can advertise on Dictionaries tagged with “js”.</p>
+    <p> In this case when client has many Dictionaries stored it can advertise on Dictionaries tagged with “js".</p>
     <h4> <code>Cache-Control</code></h4>
     <p> <code>max-age=&lt;<var>seconds</var>&gt;</code> determines the lifetime of the Dictionary. After this client can re-validate it
       using standard HTTP caching semantics. Default is &lt;N&gt; seconds.</p>
-    <p> <code>private</code> - to avoid mis-caching on intermediate proxies of delta encoded result server SHOULD set “private” in
+    <p> <code>private</code> - to avoid mis-caching on intermediate proxies of delta encoded result server SHOULD set “private" in
       Cache-Control header for SDCHx encoded responses.</p>
     <p> <code>no-transform</code> - This signifies that proxies should not change (corrupt) the content, so it will work.</p>
     <p> </p>
