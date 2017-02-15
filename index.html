@@ -5,13 +5,39 @@
     <title>Shared Dictionary - update</title>
   </head>
   <body>
-    <p>This is a replacement approach for SDCH - draft-lee-sdch-spec-00</p>
+    <p>This is a draft of a slighlty different approach for [<a href="ref-SDCH">SDCH</a>] - <a href="https://tools.ietf.org/html/draft-lee-sdch-spec-00">draft-lee-sdch-spec-00</a></p>
+    <h2>Admin information</h2>
     <p>Editor: Chaals, Bacek</p>
-    <p>An approach to shared dictionaries for compression&nbsp; that is related to SDCH. A key difference is moving the metadata out of the
-      dictionary.</p>
+    <p>This is currently on github: <a href="http://gitub.com/chaals/dictionary-share">http://gitub.com/chaals/dictionary-share</a> and
+      comments are welcome there as issues (as are Pull Requests), but the idea is to submit it to IETF as an experimental draft.</p>
+    <p>An approach to shared dictionaries for compression, related to SDCH. A key difference is moving the metadata out of the dictionary.</p>
+    <ol id="mozToc">
+      <li><a href="#mozTocId648186">To do:</a></li>
+      <li><a href="#mozTocId308433">Examples</a></li>
+      <li><a href="#mozTocId1347">Dynamic dictionary use</a></li>
+      <li><a href="#mozTocId863194">Multiple dictionaries used for single response.</a></li>
+      <li><a href="#mozTocId907451">Dictionary Scope</a></li>
+      <li><a href="#mozTocId686374">Headers</a>
+        <ol>
+          <li><a href="#mozTocId287103">Client headers</a></li>
+          <li><a href="#mozTocId709034">Server headers</a></li>
+        </ol>
+      </li>
+      <li><a href="#mozTocId766194">Differences to [SDCH]</a></li>
+      <li><a href="#mozTocId778433">Security Considerations</a></li>
+      <li><a href="#mozTocId679526">References:</a></li>
+      <li><a href="#mozTocId73417">Acknowledgements</a></li>
+    </ol>
+    <p><br>
+    </p>
     <h2>To do:</h2>
-    <p>most stuff :(</p>
-    <p>Explain the differences more clearly</p>
+    <ul>
+      <li>most stuff :(</li>
+      <li>Security Considerations</li>
+      <li>Explain the differences to SDCH more clearly, and fold in the bits that match.</li>
+      <li>Think about whether there is a sensible mechanism whereby cross-origin sharing can be allowed.</li>
+      <li>Security Considerations (Yeah, I know I said it. It's important)</li>
+    </ul>
     <h3>Examples</h3>
     <p>An initial request for a resource</p>
     <pre><code>GET /foo.html HTTP/1.1
@@ -21,7 +47,7 @@ SDCHx-Features: &lt;semicolon separated list of supported features&gt;</code></p
     <p>Initial response</p>
     <pre><code>HTTP/1.1 200 Ok
 Set-Cookie: &lt;sdch_tracking_id&gt;
-Link: &lt;https://cdn.example.com/common.dict&gt;; rel=”sdchx-dictionary”
+Link: &lt;https://cdn.example.com/common.dict&gt;; rel="sdchx-dictionary"
 Access-Control-Allow-Origin: cdn.example.com</code></pre>
     <p>Request for dictionary:</p>
     <pre><code>GET /common.dict HTTP/1.1
@@ -77,11 +103,11 @@ Cache-Control: max-age=&lt;max-age&gt;<br>&lt;Dictionary&gt;<br></code></pre>
     Cache-Control: max-age=&lt;max-age&gt;</code></pre>
     <p>In this case the server notifies the client to use this response as a Dynamic Dictionary for future requests. The semantics of all
       the headers is exactly the same as in the case of a Precomputed Dictionary.</p>
-    <p>With HTTP/2 it’s advisable to use trailing HEADERS frame (see [RFC7230], Section 4.1.2) with SDCHx related headers to allow content
+    <p>With HTTP/2 it's advisable to use trailing HEADERS frame (see [RFC7230], Section 4.1.2) with SDCHx related headers to allow content
       streaming without caching on server side.</p>
     <h2>Multiple dictionaries used for single response.</h2>
     <p>Sometimes it can be feasible to use more than one Dictionary to encode response. For example, having a large dictionary that changes
-      infrequently and a smaller more frequently updating dictionary. In this case client can advertise “multidict” in SDCHx-Features header
+      infrequently and a smaller more frequently updating dictionary. In this case client can advertise “multidict" in SDCHx-Features header
       (based on available memory, free CPU cycles, etc). If server decided to use it then it will concatenate two or more Dictionaries into
       on and use for encoding.</p>
     <p>Request:</p>
@@ -128,7 +154,7 @@ SDCHx-Algo: vcdiff
       response headers was issued </p>
     <p>Original host in case of Dynamic Dictionary</p>
     <h4><code>SDCHx-Algo</code></h4>
-    <p>Specify either</p>
+    <p>Specifies:</p>
     <p>algorithm this Dictionary can be used with. Default is vcdiff.</p>
     <p>Algorithm used to encode response. Default is vcdiff.</p>
     <h4><code>SDCHx-Used-Dictionary-Id</code></h4>
@@ -140,15 +166,15 @@ SDCHx-Algo: vcdiff
     <h4> <code>SDCHx-Tag</code></h4>
     <p> Way of grouping and tagging SDCHx dictionaries to notify client about dictionary applicability.</p>
     <p> </p>
-    <p> For example we can serve a <var>js.dict</var> Dictionary with “SDCHx-Tag: js” header. In the HTML served we can then have snippet
+    <p> For example we can serve a <var>js.dict</var> Dictionary with “SDCHx-Tag: js" header. In the HTML served we can then have snippet
       similar to </p>
-    <p> <code>&lt;script src=”/js/foo.js” sdchx-tag=”js”/&gt;</code></p>
+    <p> <code>&lt;script src="/js/foo.js" sdchx-tag="js"/&gt;</code></p>
     <p> </p>
-    <p> In this case when client has many Dictionaries stored it can advertise on Dictionaries tagged with “js”.</p>
+    <p> In this case when client has many Dictionaries stored it can advertise on Dictionaries tagged with “js".</p>
     <h4> <code>Cache-Control</code></h4>
     <p> <code>max-age=&lt;<var>seconds</var>&gt;</code> determines the lifetime of the Dictionary. After this client can re-validate it
       using standard HTTP caching semantics. Default is &lt;N&gt; seconds.</p>
-    <p> <code>private</code> - to avoid mis-caching on intermediate proxies of delta encoded result server SHOULD set “private” in
+    <p> <code>private</code> - to avoid mis-caching on intermediate proxies of delta encoded result server SHOULD set “private" in
       Cache-Control header for SDCHx encoded responses.</p>
     <p> <code>no-transform</code> - This signifies that proxies should not change (corrupt) the content, so it will work.</p>
     <p> </p>
@@ -164,8 +190,16 @@ SDCHx-Algo: vcdiff
     <p>Use of various headers to move metadata out of dictionary</p>
     <p>Allowing multiple dictionaries</p>
     <p>Dynamic dictionaries</p>
-    <p><br>
+    <h2>Security Considerations</h2>
+    <p>
+      <meta charset="utf-8">
     </p>
+    <p><a href="https://lists.w3.org/Archives/Public/ietf-http-wg/2017JanMar/0087.html">Suggested</a> that this only be offered for use with
+      fetches with a <code><a href="https://fetch.spec.whatwg.org/#concept-request-credentials-mode">credentials mode</a></code> of <var>omit</var>.
+      [<a href="ref-Fetch">Fetch</a>] That is, don't make it possible for the server to use ambient authority (including cookies) to
+      customize the request.</p>
+    <p>Putting secret content into a dictionary and shipping it around doesn't seem like a very clever idea...</p>
+    <p>These are like cookies so some of the same things will probably apply.</p>
     <h2>References:</h2>
     <dl>
       <dt>[<a id="ref-2119">2119</a>] RFC2119</dt>
@@ -176,11 +210,11 @@ SDCHx-Algo: vcdiff
       <dt>[<a id="ref-Linking">Linking</a>] RFC5988</dt>
       <dd>Mnot</dd>
       <dt>[<a id="ref-SDCH">SDCH</a>] Butler et al.</dt>
-      <dd>draft-lee-sdch-spec-00</dd>
+      <dd>The proposal for SDCH, as submitted to IETF: <a href="https://tools.ietf.org/html/draft-lee-sdch-spec-00">https://tools.ietf.org/html/draft-lee-sdch-spec-00</a></dd>
       <dt>[<a id="ref-VCDiff">VCDiff</a>] RFC3284</dt>
     </dl>
     <h2>Acknowledgements</h2>
-    <p>Wawa, Mnot, Martin Thompson, Ted Hardie, the guys behind SDCH (see editors and acknowledgements) </p>
+    <p>Wawa, Mnot, Martin Thomson, Ted Hardie, the guys behind SDCH (see editors and acknowledgements) </p>
     <p> </p>
   </body>
 </html>
