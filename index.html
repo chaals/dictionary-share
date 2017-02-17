@@ -32,13 +32,25 @@
     </p>
     <h2>To do:</h2>
     <ul>
-      <li>most stuff :(</li>
-      <li>Security Considerations</li>
+      <li>More to say on Security, Privacy Considerations?</li>
       <li>Explain the differences to SDCH more clearly, and fold in the bits that match.</li>
       <li>Think about whether there is a sensible mechanism whereby cross-origin sharing can be allowed.</li>
       <li>Security Considerations (Yeah, I know I said it. It's important)</li>
     </ul>
-    <h3>Examples</h3>
+    <h2>Introduction</h2>
+    <p>This specification builds on [SDCH] to describe a mechanism for sites to use shared dictionaries, stored by a user agent, as a way of
+      enabling better compression of data over the wire.</p>
+    <h3 id="key-differences-sdch">Key differences to [<a href="#ref-SDCH">SDCH</a>]</h3>
+    <ul>
+      <li>Use of various headers to move metadata out of dictionary</li>
+      <li>Allowing multiple dictionaries</li>
+      <li>Dynamic dictionaries</li>
+      <li>Using features list instead of version metadata</li>
+      <li>Allowing an algorithm header to enable different kinds of compression where VCDiff isn't optimal.</li>
+    </ul>
+    <ul>
+    </ul>
+    <h3>Usage Examples</h3>
     <p>An initial request for a resource</p>
     <pre><code>GET /foo.html HTTP/1.1
 Host: example.com
@@ -87,7 +99,7 @@ Cache-Control: max-age=&lt;max-age&gt;<br>&lt;Dictionary&gt;<br></code></pre>
     &lt;vcdiff encoded response&gt;</code></pre>
     <p>SDCHx encoded response can be further encoded with generic compression algorithm.</p>
     <p>Response SHOULD include algorithm specific checksum to verify integrity. Client is advised to store decoded content in cache.</p>
-    <h2>Dynamic dictionary use</h2>
+    <h2 id="dynamic-dictionaries">Dynamic dictionary use</h2>
     <p>Initial request</p>
     <pre><code>GET /foo.html HTTP/1.1
     Host: example.com
@@ -105,7 +117,7 @@ Cache-Control: max-age=&lt;max-age&gt;<br>&lt;Dictionary&gt;<br></code></pre>
       the headers is exactly the same as in the case of a Precomputed Dictionary.</p>
     <p>With HTTP/2 it's advisable to use trailing HEADERS frame (see [RFC7230], Section 4.1.2) with SDCHx related headers to allow content
       streaming without caching on server side.</p>
-    <h2>Multiple dictionaries used for single response.</h2>
+    <h2 id="multiple-dictionaries">Multiple dictionaries used for single response.</h2>
     <p>Sometimes it can be feasible to use more than one Dictionary to encode response. For example, having a large dictionary that changes
       infrequently and a smaller more frequently updating dictionary. In this case client can advertise “multidict" in SDCHx-Features header
       (based on available memory, free CPU cycles, etc). If server decided to use it then it will concatenate two or more Dictionaries into
@@ -126,10 +138,10 @@ SDCHx-Algo: vcdiff
 &lt;vcdiff encoded response&gt;</code></pre>
     <p>In this example server decided to use Dictionaries &lt;id1&gt; and &lt;id3&gt; for encoding. Client must concatenate content of those
       dictionaries into one to decode response. As per HTTP spec SDCHx-Used-Dictionary-Id can be combined into single, comma separated list.</p>
-    <h2>Dictionary Scope</h2>
+    <h2 id="dictionary-scope">Dictionary Scope</h2>
     <p>A dictionary matches when the origin [<a href="ref-Origin">Origin</a>] of the dictionary and the resource are the same, and its path
       matches <code>SDCHx-Related-Pattern</code>. Matching means that if <code>SDCHx-Related-Pattern</code> begins and ends with "/" then
-      it case-sensitively matches the beginning of the path of the resource, otherwise pre- or ap-pending "/" to <code>SDCHx-Related-Pattern</code>
+      it case-sensitively matches the beginning of the path of the resource, otherwise pre- or appending "/" to <code>SDCHx-Related-Pattern</code>
       as necessary&nbsp; makes it a strict match.</p>
     <h2>Headers</h2>
     <h3>Client headers</h3>
@@ -185,11 +197,12 @@ SDCHx-Algo: vcdiff
     <p> After receiving a <code>Link</code> header with <code>rel="sdchx-dictionary"</code> the client should mark that dictionary as
       applicable for the origin domain.</p>
     <p> </p>
-    <p> See RFC5988 for details.</p>
-    <h2>Differences to [<a href="#ref-SDCH">SDCH</a>]</h2>
-    <p>Use of various headers to move metadata out of dictionary</p>
-    <p>Allowing multiple dictionaries</p>
-    <p>Dynamic dictionaries</p>
+    <p> See [RFC5988] for details.</p>
+    <h2>Privacy considerations</h2>
+    <p>Telling a site that you have dictionaries provides a tracking mechanism, that could be used by customising dictionaries on a per-user
+      basis. This does not expose any greater privacy risk than is already present with cookies, if the same mechanisms are available to
+      users to audit and adjust dictionaries managed by a user agent as are available for cookies.</p>
+    <p>If the specification allowed for cross-origin sharing of dictionaries, that tracking mechanism would be more powerful...</p>
     <h2>Security Considerations</h2>
     <p>
       <meta charset="utf-8">
